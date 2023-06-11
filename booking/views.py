@@ -11,6 +11,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.pagination import PageNumberPagination
 from .models import Room, Resident, Booking
 from .serializers import RoomSerializer, BookingSerializer, BookingRoomSerializer 
+from django_filters.rest_framework import DjangoFilterBackend
 
 
 class CustomPagination(PageNumberPagination):
@@ -33,21 +34,22 @@ class CustomPagination(PageNumberPagination):
 
 class RoomListAPIView(ListAPIView):
     queryset = Room.objects.all()
-    filter_backends = [SearchFilter, OrderingFilter]
-    search_fields = ['name']
-    ordering_fileds = ['type__type']
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['name', 'type']
     pagination_class = CustomPagination
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        
-        search_term = self.request.query_params.get("search")
-        if search_term:
-            queryset = queryset.filter(name__icontains=search_term)
-
+        search_name = self.request.query_params.get("name")
         room_type = self.request.query_params.get('type')
-        if room_type:
-            queryset = queryset.filter(type=room_type)
+        
+        print(search_name, room_type)
+        if search_name and room_type:
+            queryset = queryset.filter(name__icontains=search_name, type__icontains=room_type)
+        elif search_name:
+            queryset = queryset.filter(name__icontains=search_name)
+        elif room_type:
+            queryset = queryset.filter(type__icontains=room_type)
 
         return queryset
 
