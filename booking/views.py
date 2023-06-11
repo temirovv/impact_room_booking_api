@@ -18,6 +18,18 @@ class CustomPagination(PageNumberPagination):
     max_page_size = 10
     page_size_query_param = 'page_size'
 
+    def get_paginated_response(self, data):
+        return Response(
+            {
+                'page': self.page.number,
+                'count': self.page.paginator.count,
+                "page_size": self.page.paginator.per_page,
+                # 'next': self.get_next_link(),
+                # 'previous': self.get_previous_link(),
+                'results': data
+            }
+        )
+
 
 class RoomListAPIView(ListAPIView):
     queryset = Room.objects.all()
