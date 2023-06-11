@@ -66,7 +66,7 @@ class RoomListAPIView(ListAPIView):
             return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class RoomDetailView(APIView):
@@ -74,9 +74,7 @@ class RoomDetailView(APIView):
         try:
             room = Room.objects.get(id=pk)
             data = RoomSerializer(room).data
-
-            return Response(data, status=status.HTTP_200_OK)
-        
+            return Response(data, status=status.HTTP_200_OK)        
         except Exception:
             data = {
                 "error": "topilmadi"
@@ -91,8 +89,7 @@ class BookingRoomView(CreateAPIView):
         return BookingSerializer
 
     def post(self, request, pk, *args, **kwargs):
-        room = get_object_or_404(Room.objects.all(), id=pk)
-        print(request.data)
+        room = Room.objects.get(id=pk)
 
         try:
             resident_name = request.data.get('resident.name') # for html form data
@@ -103,8 +100,11 @@ class BookingRoomView(CreateAPIView):
             resident, _ = Resident.objects.get_or_create(name=resident_name)
         else:
             return Response({
-                "message": "Resident name cannot be blank"
-            })
+                "error": "Resident nomi bo‘sh bo‘lishi mumkin emas"
+                }, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         start = request.data['start']
         end = request.data['end']
 
@@ -123,18 +123,13 @@ class BookingRoomView(CreateAPIView):
             "end": end
         }
         serialized_data = BookingSerializer(data=request.data, context={"room_id": room.id})
-        
-
         if serialized_data.is_valid(raise_exception=True):
-            
-            # booking = Booking(resident=resident, room=room, start=start, end=end)
-            bookingg = BookingRoomSerializer(data=data, context={"room_id": room.id})
-
-            if bookingg.is_valid(raise_exception=True):
-                bookingg.save()
+            booking = BookingRoomSerializer(data=data, context={"room_id": room.id})
+            if booking.is_valid(raise_exception=True):
+                booking.save()
                 context = {
                     "message": "xona muvaffaqiyatli band qilindi"
-                }    
+                }
                 return Response(context)
             else:
                 context = {
@@ -216,10 +211,11 @@ class RoomAvailabiltyAPIView(ListAPIView):
             }
 
         if data:
-            return Response(data)
+            return Response(data, status=status.HTTP_200_OK)
         else:
             return Response(
                 {
                     "message": f"{date} sanasi uchun {room.name} xonasida bo'sh vaqtlar mavjud emas! :("
-                }
+                },
+                status=status.HTTP_404_NOT_FOUND
             )
