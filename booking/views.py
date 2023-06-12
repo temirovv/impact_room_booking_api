@@ -3,14 +3,13 @@ from django.utils import timezone
 from django.conf import settings
 from zoneinfo import ZoneInfo
 from rest_framework.views import APIView
-from rest_framework.generics import CreateAPIView, ListAPIView
+from rest_framework.generics import ListAPIView
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.generics import get_object_or_404
-from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.filters import SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from .models import Room, Resident, Booking
-from .serializers import RoomSerializer, BookingSerializer, BookingRoomSerializer 
+from .serializers import RoomSerializer, BookingRoomSerializer 
 from django_filters.rest_framework import DjangoFilterBackend
 
 
@@ -25,8 +24,6 @@ class CustomPagination(PageNumberPagination):
                 'page': self.page.number,
                 'count': self.page.paginator.count,
                 "page_size": self.page.paginator.per_page,
-                # 'next': self.get_next_link(),
-                # 'previous': self.get_previous_link(),
                 'results': data
             }
         )
@@ -43,7 +40,6 @@ class RoomListAPIView(ListAPIView):
         search_name = self.request.query_params.get("name")
         room_type = self.request.query_params.get('type')
         
-        print(search_name, room_type)
         if search_name and room_type:
             queryset = queryset.filter(name__icontains=search_name, type__icontains=room_type)
         elif search_name:
@@ -58,7 +54,6 @@ class RoomListAPIView(ListAPIView):
 
     def get(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        # queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
 
         if page is not None:
@@ -82,20 +77,19 @@ class RoomDetailView(APIView):
             return Response(data, status=status.HTTP_404_NOT_FOUND)
 
 
-class BookingRoomView(CreateAPIView):
+class BookingRoomView(APIView):
     queryset = Booking.objects.all()
     
     def get_serializer_class(self):
-        return BookingSerializer
+        return BookingRoomSerializer
 
     def post(self, request, pk, *args, **kwargs):
         room = Room.objects.get(id=pk)
-
         try:
-            resident_name = request.data.get('resident.name') # for html form data
+            resident_name = request.data['resident']['name']
         except Exception:
-            resident_name = request.data['resident']['name'] # for json form data
-
+            raise Exception("error occured")
+        
         if resident_name is not None and resident_name.rstrip():
             resident, _ = Resident.objects.get_or_create(name=resident_name)
         else:
@@ -114,7 +108,12 @@ class BookingRoomView(CreateAPIView):
             start = datetime.strptime(start, datetime_format)
             end = datetime.strptime(end, datetime_format)
         except Exception:
-            pass  #do nothing for html form datetime
+            return Response(
+                {
+                    "error": f"siz sana va vaqtni ushbu ko'rinishda kiritishingiz kerak {datetime_format}"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         data = {
             "resident": resident.id,
@@ -122,31 +121,31 @@ class BookingRoomView(CreateAPIView):
             "start": start,
             "end": end
         }
-        serialized_data = BookingSerializer(data=request.data, context={"room_id": room.id})
-        if serialized_data.is_valid(raise_exception=True):
-            booking = BookingRoomSerializer(data=data, context={"room_id": room.id})
-            if booking.is_valid(raise_exception=True):
-                booking.save()
-                context = {
-                    "message": "xona muvaffaqiyatli band qilindi"
-                }
-                return Response(context)
-            else:
-                context = {
-                    "error": "uzr, siz tanlagan vaqtda xona band"
-                }
-                return Response(context)
-        else:
+        serialized_data = BookingRoomSerializer(data=data, context={"room_id": room.id})
+        if serialized_data.is_valid():
+            serialized_data.save()
             context = {
-                "malumotlar formati mos kelmadi"
+                "message": "xona muvaffaqiyatli band qilindi"
             }
-            return Response(context)
+            return Response(context, status=status.HTTP_201_CREATED)
+        else:
+            try:
+                errors = serialized_data.errors['non_field_errors'][0]
+                error_code = errors.code
+                error_message = str(errors)
+
+                context = {
+                    error_code: error_message,
+                }
+                return Response(context, status=status.HTTP_410_GONE)
+            
+            except Exception:
+                return Response(serialized_data.errors, status=status.HTTP_410_GONE)
         
 
 class RoomAvailabiltyAPIView(ListAPIView):
     filter_backends = [SearchFilter,]
     search_fields = ['start__date']
-
 
     def get_date(self, *args, **kwargs):
         date_ = self.request.query_params.get("search")
@@ -154,16 +153,16 @@ class RoomAvailabiltyAPIView(ListAPIView):
             date = datetime.strptime(date_, "%Y-%m-%d").date()
         else:
             date = timezone.localdate()
-            print("bingo=",date)
-            print(f"{timezone.localdate()=}")
         return date
 
     def get_queryset(self):
         queryset = Booking.objects.filter(room=self.kwargs.get("pk"))        
         date = self.get_date()
         queryset = queryset.filter(start__date=date)
-
         return queryset
+
+    def get_room(self):
+        return Room.objects.get(id=self.kwargs.get('pk'))
 
     def generate_available_times(self, opening_time, closing_time, bookings, *args, **kwargs):
         time_zone = ZoneInfo(settings.TIME_ZONE)
@@ -192,18 +191,23 @@ class RoomAvailabiltyAPIView(ListAPIView):
     
         return data
 
+    def make_aware(self, date_, time_, *args, **kwargs):
+        return timezone.make_aware(datetime.combine(date_, time_))
+    
     def get(self, request, pk, *args, **kwargs):
-        room = Room.objects.get(id=pk)
+        room = self.get_room()
         date = self.get_date()
-        
-        opening_time = timezone.make_aware(datetime.combine(date, room.opening_time))
-        closing_time = timezone.make_aware(datetime.combine(date, room.closing_time))
+        opening_time = self.make_aware(date, room.opening_time)
+        closing_time = self.make_aware(date, room.closing_time)
 
         bookings = self.get_queryset()
         if bookings:
             bookings = bookings.order_by('start__time')
-            data = self.generate_available_times(opening_time=opening_time, closing_time=closing_time, bookings=bookings)
-            
+            data = self.generate_available_times(
+                opening_time=opening_time, 
+                closing_time=closing_time, 
+                bookings=bookings
+            )
         else:
             data = {
                 "start": opening_time,
@@ -211,7 +215,10 @@ class RoomAvailabiltyAPIView(ListAPIView):
             }
 
         if data:
-            return Response(data, status=status.HTTP_200_OK)
+            return Response(
+                data, 
+                status=status.HTTP_200_OK
+            )
         else:
             return Response(
                 {
