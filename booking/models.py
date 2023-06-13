@@ -1,6 +1,7 @@
+from datetime import time
+
 from django.db import models
 from django.core.exceptions import ValidationError
-from datetime import time
 
 
 class Resident(models.Model):
@@ -11,8 +12,14 @@ class Resident(models.Model):
 
 
 class Room(models.Model):
+    ROOM_TYPES = [
+        ('focus', 'Focus'),
+        ('team', 'Team'),
+        ('conference', 'Conference')
+    ]
+
     name = models.CharField(max_length=200)
-    type = models.CharField(max_length=150)
+    room_type = models.CharField(max_length=11, choices=ROOM_TYPES)
     capacity = models.PositiveIntegerField()
     
     opening_time = models.TimeField(default=time(hour=6, minute=0, second=0))
@@ -24,7 +31,7 @@ class Room(models.Model):
     def clean(self):
         rooms = Room.objects.filter(
             name__icontains = self.name,
-            type__icontains = self.type,
+            room_type = self.room_type,
         )
 
         if rooms.exists():
