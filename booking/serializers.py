@@ -7,7 +7,7 @@ from django.utils import timezone
 class RoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
-        fields = ('id', 'name', 'type', 'capacity')
+        fields = ('id', 'name', 'room_type', 'capacity')
 
 
 class BookingRoomSerializer(serializers.ModelSerializer):
