@@ -1,4 +1,7 @@
 # impact_room_booking_api
+```
+to‘liq dokumentatsiya -> documentation.pdf
+```
 # Room Booking API
 
 Impactt co-working markazi rezidentlariga majlis xonalarni oldindan oson band qilish uchun yaratilgan Rest API
