@@ -151,7 +151,7 @@ class BookingRoomView(APIView):
                 return Response(serialized_data.errors, status=status.HTTP_410_GONE)
 
 
-class RoomAvailabiltyAPIView(ListAPIView):
+class RoomAvailabiltyAPIView(APIView):
     filter_backends = [SearchFilter,]
     search_fields = ['start__date']
 
