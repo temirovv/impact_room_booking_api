@@ -175,6 +175,12 @@ class RoomAvailabiltyAPIView(APIView):
             date = timezone.localdate()
         return date
 
+    def get_current_time(self):
+        current_time = timezone.localtime().__format__('%d-%m-%Y %H:%M:%S')
+        current_time = datetime.strptime(current_time, '%d-%m-%Y %H:%M:%S').time()
+
+        return current_time
+    
     def get_queryset(self):
         queryset = Booking.objects.filter(room=self.kwargs.get("pk"))
         date = self.get_date()
@@ -249,11 +255,32 @@ class RoomAvailabiltyAPIView(APIView):
         '''
         return timezone.make_aware(datetime.combine(date_, time_))
 
+    def check_time_for_today(self):
+        current_time = self.get_current_time()
+        room = self.get_room()
+        date = self.get_date()
+        times = {}
+        if date == timezone.localdate():
+            if room.opening_time < current_time and room.closing_time > current_time:
+                times['opening_time'] = self.make_aware(date, current_time)
+                times['closing_time'] = self.make_aware(date, room.closing_time)
+                return times
+            else:
+                return None
+        else:
+            return None
+       
     def get(self, request, pk, *args, **kwargs):
         room = self.get_room() # ayni vaqtdagi xonani olish
         date = self.get_date() # sanani olish
-        opening_time = self.make_aware(date, room.opening_time) # sana va vaqtni 
-        closing_time = self.make_aware(date, room.closing_time) # birlashtirish
+
+        times = self.check_time_for_today()
+        if times:
+            opening_time = times['opening_time']
+            closing_time = times['closing_time']
+        else:
+            opening_time = self.make_aware(date, room.opening_time) # sana va vaqtni         
+            closing_time = self.make_aware(date, room.closing_time) # birlashtirish
 
         # band qilingan xonalarni olish
         bookings = self.get_queryset()
