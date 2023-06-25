@@ -153,7 +153,8 @@ class BookingRoomView(APIView):
 
 
 class RoomAvailabiltyAPIView(APIView):
-    filter_backends = [SearchFilter,]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    # filterset_fields = ['']
     search_fields = ['start__date']
     
     def get_date(self, *args, **kwargs):
@@ -168,8 +169,17 @@ class RoomAvailabiltyAPIView(APIView):
             bo'lsa bugungi(ayni vaqtdagi) sanani jo'natish.
         '''
         date_ = self.request.query_params.get("search")
+        date_2 = self.request.query_params.get("date")
         if date_:
-            date = datetime.strptime(date_, "%Y-%m-%d").date()
+            try:
+                date = datetime.strptime(date_, "%Y-%m-%d").date()
+            except ValueError:
+                date = datetime.strptime(date_, "%d-%m-%Y").date()
+        elif date_2:
+            try:
+                date = datetime.strptime(date_2, "%Y-%m-%d").date()
+            except ValueError:
+                date = datetime.strptime(date_2, "%d-%m-%Y").date()            
         else:
             date = timezone.localdate()
         return date
@@ -217,28 +227,28 @@ class RoomAvailabiltyAPIView(APIView):
 
         # agar birinchi band qilingan vaqtdan oldin bo'sh vaqt bo'lsa
         if opening_time < first_booking_start:
-            start = opening_time
-            end = first_booking_start
-            data.append({"start": start.astimezone(time_zone),
-                        "end": end.astimezone(time_zone)})
+            start = opening_time.astimezone(time_zone)
+            end = first_booking_start.astimezone(time_zone)
+            data.append({"start": datetime.strftime(start, settings.DATETIME_FORMAT),
+                        "end": datetime.strftime(end, settings.DATETIME_FORMAT)})
 
         # birinchi bookingdan keyingi bo'sh vaqtlar
         for i in range(len(bookings) - 1):
             current_end = bookings[i].end
             next_start = bookings[i+1].start
             if current_end < next_start:
-                start = current_end
-                end = next_start
-                data.append({"start": start.astimezone(time_zone),
-                            "end": end.astimezone(time_zone)})
+                start = current_end.astimezone(time_zone)
+                end = next_start.astimezone(time_zone)
+                data.append({"start": datetime.strftime(start, settings.DATETIME_FORMAT),
+                            "end": datetime.strftime(end, settings.DATETIME_FORMAT)})
 
         # agar oxirgi bookingdan keyin bo'sh vaqt bo'lsa
         last_booking_end = bookings[len(bookings) - 1].end
         if last_booking_end < closing_time:
-            start = last_booking_end
-            end = closing_time
-            data.append({"start": start.astimezone(time_zone),
-                        "end": end.astimezone(time_zone)})
+            start = last_booking_end.astimezone(time_zone)
+            end = closing_time.astimezone(time_zone)
+            data.append({"start": datetime.strftime(start, settings.DATETIME_FORMAT),
+                        "end": datetime.strftime(end, settings.DATETIME_FORMAT)})
 
         return data
 
@@ -295,8 +305,8 @@ class RoomAvailabiltyAPIView(APIView):
             # uning bo'sh vaqtlarni xonaning ochilish va yopilish
             # vaqtiga teng bo'ladi
             data = [{
-                "start": opening_time,
-                "end": closing_time
+                "start": datetime.strftime(opening_time, '%Y-%m-%d %H:%M:%S'),
+                "end": datetime.strftime(closing_time, '%Y-%m-%d %H:%M:%S')
             }]
         
         if data:
