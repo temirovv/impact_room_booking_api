@@ -28,11 +28,12 @@ class BookingRoomSerializer(serializers.ModelSerializer):
                 )
 
         # agart 'start' vaqti hozirgi vaqtdan kichik bo'lsa
-        if timezone.localtime().time() > start.time():
-            raise ValidationError(
-                "O'tgan vaqt uchun bron qilolmaysiz",
-                code='error'
-                )            
+        if timezone.localdate() == start.date():
+            if timezone.localtime().time() > start.time():
+                raise ValidationError(
+                    "O'tgan vaqt uchun bron qilolmaysiz",
+                    code='error'
+                    )            
 
         # agar 'start' uchun kiritilgan sana va vaqt 'end' uchun kiritilgan vaqtdan keyin kelsa
         if end <= start:
