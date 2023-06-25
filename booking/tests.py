@@ -10,11 +10,42 @@ from .models import Room, Booking
 from .serializers import RoomSerializer
 
 
+class RoomListTest(APITestCase):
+    def setUp(self):
+        self.room = Room.objects.create(name='training room', room_type='conference', capacity=9)
+        self.params = {'name': 'training room', 'type': 'conference'}
+
+    def test_get_rooms_with_filter_by_name(self):
+        url = reverse('rooms')
+        url += f"?name={self.params['name']}&room_type="
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'][0]['name'], self.params['name'])
+        
+    def test_get_rooms_with_filter_by_room_type(self):
+        url = reverse('rooms')
+        url += f"?name=&room_type={self.params['type']}"
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'][0]['room_type'], self.params['type'])
+
+    def test_get_rooms_with_filter(self):
+        url = reverse('rooms')
+        url += f"?name={self.params['name']}&room_type={self.params['type']}"
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'][0]['name'], self.params['name'])
+        self.assertEqual(response.data['results'][0]['room_type'], self.params['type'])
+
+
 class RoomDetailTest(APITestCase):
     def setUp(self):
         self.room = Room.objects.create(name='Room test1', room_type='conference', capacity=5)
-
-    def test_existing_room(self):
+        
+    def test_get_room_by_id_existing(self):
         url = reverse('room-detail', args=[self.room.pk])
         response = self.client.get(url, format='json')
         
@@ -27,6 +58,7 @@ class RoomDetailTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(response.data, {'error': 'topilmadi'})
+
 
 class BookingRoom(APITestCase):
     def setUp(self):
@@ -41,10 +73,13 @@ class BookingRoom(APITestCase):
         
         booking_date = str(booking_date)
         self.booking = {
-            'resident': {'name': 'Residentjon'},
-            'start': f'{booking_date} 09:00:00',
-            'end': f'{booking_date} 11:00:00'
+            "resident": {"name": "Residentjon"},
+            "start": f"{booking_date} 09:00:00",
+            "end": f"{booking_date} 11:00:00"
         }
+
+    def tearDown(self):
+        pass
 
     def test_invalid_booking_data(self):
         url = reverse('room-booking', args=[self.room.pk])
@@ -71,4 +106,3 @@ class BookingRoom(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_410_GONE)
         self.assertEqual(response.data, {'error': 'uzr, siz tanlagan vaqtda xona band'})
-
