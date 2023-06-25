@@ -33,8 +33,9 @@ class CustomPagination(PageNumberPagination):
 
 class RoomListAPIView(ListAPIView):
     queryset = Room.objects.all()
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['search', 'type']
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_fields = ['type']
+    search_fields = ['name']
     pagination_class = CustomPagination
 
     def get_queryset(self):
