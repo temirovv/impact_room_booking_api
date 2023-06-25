@@ -34,12 +34,12 @@ class CustomPagination(PageNumberPagination):
 class RoomListAPIView(ListAPIView):
     queryset = Room.objects.all()
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['name', 'room_type']
+    filterset_fields = ['search', 'room_type']
     pagination_class = CustomPagination
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        search_name = self.request.query_params.get("name")
+        search_name = self.request.query_params.get("search")
         room_type = self.request.query_params.get('room_type')
 
         if search_name and room_type:
@@ -154,7 +154,7 @@ class BookingRoomView(APIView):
 class RoomAvailabiltyAPIView(APIView):
     filter_backends = [SearchFilter,]
     search_fields = ['start__date']
-
+    
     def get_date(self, *args, **kwargs):
         '''
             get_date -> metodi Xonaning bo'sh vaqtlarni ko'rish uchun api 
