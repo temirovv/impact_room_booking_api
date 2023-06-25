@@ -22,8 +22,8 @@ class Room(models.Model):
     type = models.CharField(max_length=11, choices=ROOM_TYPES)
     capacity = models.PositiveIntegerField()
     
-    opening_time = models.TimeField(default=time(hour=6, minute=0, second=0))
-    closing_time = models.TimeField(default=time(hour=20, minute=0, second=0))
+    opening_time = models.TimeField(default=time(hour=0, minute=0, second=0))
+    closing_time = models.TimeField(default=time(hour=23, minute=59, second=59))
     
     def __str__(self) -> str:
         return self.name
