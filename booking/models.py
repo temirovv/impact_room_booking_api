@@ -19,7 +19,7 @@ class Room(models.Model):
     ]
 
     name = models.CharField(max_length=200)
-    room_type = models.CharField(max_length=11, choices=ROOM_TYPES)
+    type = models.CharField(max_length=11, choices=ROOM_TYPES)
     capacity = models.PositiveIntegerField()
     
     opening_time = models.TimeField(default=time(hour=6, minute=0, second=0))
@@ -31,7 +31,7 @@ class Room(models.Model):
     def clean(self):
         rooms = Room.objects.filter(
             name__icontains = self.name,
-            room_type = self.room_type,
+            type = self.type,
         )
 
         if rooms.exists():
