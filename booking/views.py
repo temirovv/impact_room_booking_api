@@ -109,7 +109,7 @@ class BookingRoomView(APIView):
 
         try:
             # kelgan sana va vaqtni kerakli formatga o‘tkazish
-            datetime_format = '%d-%m-%Y %H:%M:%S'
+            datetime_format = settings.DATETIME_FORMAT
             start = datetime.strptime(start, datetime_format)
             end = datetime.strptime(end, datetime_format)
         except Exception:
@@ -169,15 +169,13 @@ class RoomAvailabiltyAPIView(APIView):
         date_ = self.request.query_params.get("search")
         if date_:
             date = datetime.strptime(date_, "%Y-%m-%d").date()
-            if date > timezone.localdate():
-                return None
         else:
             date = timezone.localdate()
         return date
 
     def get_current_time(self):
-        current_time = timezone.localtime().__format__('%d-%m-%Y %H:%M:%S')
-        current_time = datetime.strptime(current_time, '%d-%m-%Y %H:%M:%S').time()
+        current_time = timezone.localtime().__format__(settings.DATETIME_FORMAT)
+        current_time = datetime.strptime(current_time, settings.DATETIME_FORMAT).time()
 
         return current_time
     
@@ -269,7 +267,7 @@ class RoomAvailabiltyAPIView(APIView):
                 return None
         else:
             return None
-       
+        
     def get(self, request, pk, *args, **kwargs):
         room = self.get_room() # ayni vaqtdagi xonani olish
         date = self.get_date() # sanani olish
@@ -295,10 +293,10 @@ class RoomAvailabiltyAPIView(APIView):
             # agar berilgan sanada hech qanday bookinglar bo'lmasa
             # uning bo'sh vaqtlarni xonaning ochilish va yopilish
             # vaqtiga teng bo'ladi
-            data = {
+            data = [{
                 "start": opening_time,
                 "end": closing_time
-            }
+            }]
         
         if data:
             return Response(
