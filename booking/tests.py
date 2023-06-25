@@ -13,7 +13,7 @@ from .serializers import RoomSerializer
 
 class RoomListTest(APITestCase):
     def setUp(self):
-        self.room = Room.objects.create(name='training room', room_type='conference', capacity=9)
+        self.room = Room.objects.create(name='training room', type='conference', capacity=9)
         self.params = {'name': 'training room', 'type': 'conference'}
         self.url = reverse('rooms')
 
@@ -35,7 +35,7 @@ class RoomListTest(APITestCase):
         for room in results:
             assert 'id' in room
             assert 'name' in room
-            assert 'room_type' in room
+            assert 'type' in room
             assert 'capacity' in room
 
     def test_get_available_rooms_with_search(self)    :
@@ -48,16 +48,16 @@ class RoomListTest(APITestCase):
         
     def test_get_rooms_with_filter(self):
         url = self.url
-        url += f"?room_type={self.params['type']}"
+        url += f"?type={self.params['type']}"
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['results'][0]['room_type'], self.params['type'])
+        self.assertEqual(response.data['results'][0]['type'], self.params['type'])
 
 
 class RoomDetailTest(APITestCase):
     def setUp(self):
-        self.room = Room.objects.create(name='Room test1', room_type='conference', capacity=5)
+        self.room = Room.objects.create(name='Room test1', type='conference', capacity=5)
         
     def test_get_room_by_id_existing(self):
         url = reverse('room-detail', args=[self.room.pk])
@@ -76,7 +76,7 @@ class RoomDetailTest(APITestCase):
 
 class BookingRoom(APITestCase):
     def setUp(self):
-        self.room = Room.objects.create(name='traning room', room_type='focus', capacity=9)
+        self.room = Room.objects.create(name='traning room', type='focus', capacity=9)
         self.resident = Resident.objects.create(name="Residentjon")
         self.url = reverse('room-booking', args=[self.room.pk])
 
@@ -140,7 +140,7 @@ class BookingRoom(APITestCase):
 
 class RoomAvailabiltyTest(APITestCase):
     def setUp(self):
-        self.room = Room.objects.create(name='traning room', room_type='focus', capacity=9)
+        self.room = Room.objects.create(name='traning room', type='focus', capacity=9)
         self.resident = Resident.objects.create(name="Residentjon")
         self.url = reverse('availability', args=[self.room.pk])
 
