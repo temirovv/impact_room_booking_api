@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-n)%+c098#-%ik8=f2f%1h=txlq0r74(_#jl*+!frtici2-%$b2
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['temirovv.jprq.live', '127.0.0.1']
 
 
 # Application definition
@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'rest_framework',
+    'drf_yasg',
+    'django_filters',
     'booking'
 ]
 
@@ -108,8 +110,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
-
+TIME_ZONE = 'Asia/Tashkent'
+DATETIME_FORMAT = '%d-%m-%Y %H:%M:%S'
 USE_I18N = True
 
 USE_TZ = True
